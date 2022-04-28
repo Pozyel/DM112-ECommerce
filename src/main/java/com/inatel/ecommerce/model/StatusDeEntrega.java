@@ -1,8 +1,8 @@
 package com.inatel.ecommerce.model;
 
 public class StatusDeEntrega {
-	public enum DELIVERY_STATUS {
-        OK, NULL_VALUES, ORDER_NOT_FOUND, WRONG_ORDER_STATUS, ORDER_ERROR, EMAIL_ERROR, CLIENT_NOT_FOUND
+	public enum ENTREGA_STATUS {
+        OK, SEM_INFORMACAO, PEDIDO_NAO_ENCONTRADO, PEDIDO_STATUS_INVALIDO, PEDIDO_ERRO, EMAIL_ERRO, CLIENTE_NAO_ENCONTRADO
     }
 
     private String deliveryCpf;
@@ -19,7 +19,7 @@ public class StatusDeEntrega {
         this.orderNumber = orderNumber;
     }
 
-    public static StatusDeEntrega createErrorStatus(DELIVERY_STATUS errorStatus, String deliveryCpf, int orderNumber) {
+    public static StatusDeEntrega createErrorStatus(ENTREGA_STATUS errorStatus, String deliveryCpf, int orderNumber) {
         return new StatusDeEntrega(errorStatus.toString(), deliveryCpf, orderNumber);
     }
 
