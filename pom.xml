@@ -14,7 +14,7 @@
 	<name>E-Commerce DM112</name>
 	<description>A logistic interface to register a package and send to the client a confirmation when the package is delivered </description>
 	<properties>
-		<java.version>8</java.version>
+		<java.version>11</java.version>
 		<repackage.classifier/>
 		<spring-native.version>0.11.4</spring-native.version>
 	</properties>

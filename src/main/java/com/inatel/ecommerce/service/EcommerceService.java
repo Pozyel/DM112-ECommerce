@@ -27,46 +27,40 @@ public class EcommerceService {
 	 * (4) envia email com o pdf
 	 * (5) retorna sucesso
 	 * 
-	 * @param cpf
+	 * @param cpfReceiver
 	 * @param pedidoNumber
 	 * @return
 	 */
-	public StatusDeEntrega startPaymentOfpedido(String cpf, int pedidoNumber) {
+	public StatusDeEntrega iniciaEntregaPedido(String cpfReceiver, int pedidoNumber) {
 		
-		if (cpf == null || pedidoNumber < 0) {
-			return StatusDeEntrega.createErrorStatus(ENTREGA_STATUS.SEM_INFORMACAO, cpf, pedidoNumber);
+		if (cpfReceiver == null || pedidoNumber < 0) {
+			return StatusDeEntrega.createErrorStatus(ENTREGA_STATUS.SEM_INFORMACAO, cpfReceiver, pedidoNumber);
 		}
 		Pedido pedido;
 		try {
 			pedido = clientPedido.recuperarPedido(pedidoNumber); //(1) consulta o pedido pelo número
 		} catch(Exception e ) {
 			System.out.println("pedido " + pedidoNumber + " not found.");
-			return StatusDeEntrega.createErrorStatus(ENTREGA_STATUS.PEDIDO_NAO_ENCONTRADO,cpf, pedidoNumber);
+			return StatusDeEntrega.createErrorStatus(ENTREGA_STATUS.PEDIDO_NAO_ENCONTRADO,cpfReceiver, pedidoNumber);
 		}
 		
-		if(pedido.getStatus() != Pedido.STATUS.PENDING.ordinal()) {
-			System.out.println("Invalid pedido status: " + pedidoNumber + ": " + pedido.getStatus());
-			return StatusDeEntrega.createErrorStatus(ENTREGA_STATUS.PEDIDO_STATUS_INVALIDO,cpf, pedidoNumber);
+		if(pedido.getStatus() != Pedido.STATUS.CONFIRMED.ordinal()
+				|| pedido.getDeliveryStatus() != Pedido.DELIVERY_STATUS.PENDING.ordinal()) {
+			System.out.println("status do pedido inválido: " + pedidoNumber + ": " + pedido.getStatus());
+			return StatusDeEntrega.createErrorStatus(ENTREGA_STATUS.PEDIDO_STATUS_INVALIDO,cpfReceiver, pedidoNumber);
 		}
 
-		pedido.setIssueDate(new Date());
-		pedido.setStatus(Pedido.STATUS.PENDING.ordinal()); //pendente de pagamento
+		pedido.setDeliveryStatus(Pedido.DELIVERY_STATUS.ONGOING.ordinal());
 		
 		try {
 			clientPedido.atualizarPedido(pedido); //(2) atualiza o status do pedido
 		} catch(Exception e ) {
 			System.out.println("Erro no serviço de pedido: update");
-			return StatusDeEntrega.createErrorStatus(ENTREGA_STATUS.PEDIDO_ERRO, cpf, pedidoNumber);
+			return StatusDeEntrega.createErrorStatus(ENTREGA_STATUS.PEDIDO_ERRO, cpfReceiver, pedidoNumber);
 		}
 		
-		try {
-			clientEmail.callSendMailService(PDFContent); //(4) envia email com o pdf
-		} catch(Exception e ) {
-			System.out.println("Erro no serviço de email");
-			return StatusDeEntrega.createErrorStatus(cpf, pedidoNumber, ENTREGA_STATUS.EMAIL_ERRO);
-		}
-		System.out.println("Sucesso ao inicializar o pagamento: pedidoNumber: " + pedidoNumber + " cpf: " + cpf);
-		return new StatusDeEntrega(ENTREGA_STATUS.OK.ordinal(), cpf, pedidoNumber); //(5) retorna sucesso
+		System.out.println("Sucesso ao inicializar entrega do pedido: pedidoNumber: " + pedidoNumber + " cpfReceiver: " + cpfReceiver);
+		return new StatusDeEntrega(ENTREGA_STATUS.OK.toString(), cpfReceiver, pedidoNumber); //(5) retorna sucesso
 	}
 
 	/**
@@ -76,31 +70,41 @@ public class EcommerceService {
 	 * (3) atualiza o status do pedido
 	 * (4) responde Ok
 	 * 
-	 * @param cpf
+	 * @param cpfReceiver
 	 * @param pedidoNumber
 	 * @return
 	 */
-	public StatusDeEntrega confirmPaymentOfpedido(String cpf, int pedidoNumber) {
+	public StatusDeEntrega confirmarEntregaPedido(String cpfReceiver, int pedidoNumber) {
 		
-		if (cpf == null || pedidoNumber < 0) {
-			return StatusDeEntrega.createErrorStatus(cpf, pedidoNumber, ENTREGA_STATUS.SEM_INFORMACAO);
+		if (cpfReceiver == null || pedidoNumber < 0) {
+			return StatusDeEntrega.createErrorStatus(ENTREGA_STATUS.SEM_INFORMACAO, cpfReceiver, pedidoNumber);
 		}
 		
-		pedido pedido = clientPedido.retrievepedido(pedidoNumber); //(1) consulta o pedido pelo número
+		Pedido pedido = clientPedido.recuperarPedido(pedidoNumber); //(1) consulta o pedido pelo número
 
 		if(pedido == null) { //alguma hora vai ser preciso verificar o status do pedido aqui
-			System.out.println("Erro no serviço de pedido: pedido is null.");
-			return StatusDeEntrega.createErrorStatus(cpf, pedidoNumber, ENTREGA_STATUS.PEDIDO_NAO_ENCONTRADO);
+			System.out.println("Erro no serviço de pedido: pedido não encontrado.");
+			return StatusDeEntrega.createErrorStatus(ENTREGA_STATUS.PEDIDO_NAO_ENCONTRADO, cpfReceiver, pedidoNumber);
 		}
-		pedido.setPaymentDate(new Date());
-		pedido.setStatus(pedido.STATUS.CONFIRMED.ordinal()); //(2) confirma o pagamento
+		pedido.setDeliveryDate(new Date());
+		pedido.setStatus(ENTREGA_STATUS.OK.ordinal()); //(2) confirma o recebimento
 		try {
-			clientPedido.updatepedido(pedido); //(3) atualiza o status do pedido
+			clientPedido.atualizarPedido(pedido); //(3) atualiza o status do pedido
 		} catch(Exception e ) {
 			System.out.println("Erro no serviço de pedido: update");
-			return StatusDeEntrega.createErrorStatus(cpf, pedidoNumber, ENTREGA_STATUS.PEDIDO_ERRO);
+			return StatusDeEntrega.createErrorStatus(ENTREGA_STATUS.PEDIDO_ERRO, cpfReceiver, pedidoNumber);
 		}
-		System.out.println("Sucesso ao confirmar o pagamento: pedidoNumber: " + pedidoNumber + " cpf: " + cpf);
-		return new StatusDeEntrega(ENTREGA_STATUS.OK.ordinal(), cpf, pedidoNumber); //(4) responde Ok
+		
+		try {
+            clientEmail.callSendMailService(null, "Confirmação de recebimento do pedido",
+                    "Entregamos o seu pedido de numero " + pedidoNumber); // (5) envia email para o cliente
+        } catch (Exception e) {
+            System.out.println("Erro no serviço de email");
+            return StatusDeEntrega.createErrorStatus(StatusDeEntrega.ENTREGA_STATUS.EMAIL_ERRO, cpfReceiver,
+                    pedidoNumber);
+        }
+		
+		System.out.println("Sucesso ao confirmar o recebimento: pedidoNumber: " + pedidoNumber + " cpfReceiver: " + cpfReceiver);
+		return new StatusDeEntrega(ENTREGA_STATUS.OK.toString(), cpfReceiver, pedidoNumber); //(4) responde Ok
 	}
 }

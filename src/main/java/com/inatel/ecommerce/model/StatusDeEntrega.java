@@ -2,7 +2,7 @@ package com.inatel.ecommerce.model;
 
 public class StatusDeEntrega {
 	public enum ENTREGA_STATUS {
-        OK, SEM_INFORMACAO, PEDIDO_NAO_ENCONTRADO, PEDIDO_STATUS_INVALIDO, PEDIDO_ERRO, EMAIL_ERRO, CLIENTE_NAO_ENCONTRADO
+        OK, SEM_INFORMACAO, PEDIDO_NAO_ENCONTRADO, PEDIDO_STATUS_INVALIDO, PEDIDO_ERRO, EMAIL_ERRO
     }
 
     private String deliveryCpf;
