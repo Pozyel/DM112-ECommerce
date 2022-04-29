@@ -5,11 +5,15 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.inatel.ecommerce.model.Pedido;
 import reactor.core.publisher.Mono;
 
+
+@Service
 public class ClientePedido {
 	@Value("${order.rest.url}")
 	private String restURL;
@@ -93,6 +97,27 @@ public class ClientePedido {
 
 		System.out.println("Sucesso no updateOrder para o pedido: " + pedido.getNumber());
 	}
+	
+	 /**
+     * getOrders
+     *
+     * @param queryParams
+     * @return List of orders
+     */
+    public List<Pedido> getOrders(MultiValueMap<String, String> queryParams) {
+        String url = restURL + endpoint;
+        System.out.println("URL: " + url);
+
+        return WebClient.create(url)
+                .get()
+                .uri(builder -> builder.queryParams(queryParams).build())
+                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .retrieve()
+                .bodyToFlux(Pedido.class)
+                .collectList()
+                .log()
+                .block();
+    }
 	
 	public String getEndpoint() {
 		return endpoint;
